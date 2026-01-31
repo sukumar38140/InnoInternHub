@@ -1,0 +1,487 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum Role {
+  GUEST
+  STUDENT
+  INNOVATOR
+  INVESTOR
+  ADMIN
+}
+
+enum ProjectStatus {
+  DRAFT
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CLOSED
+}
+
+enum ApplicationStatus {
+  PENDING
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum MilestoneStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  NEEDS_REVISION
+}
+
+enum InvestmentStatus {
+  INTERESTED
+  IN_DISCUSSION
+  COMMITTED
+  WITHDRAWN
+}
+
+enum CertificateStatus {
+  PENDING
+  ISSUED
+  REVOKED
+}
+
+enum NotificationType {
+  APPLICATION_RECEIVED
+  APPLICATION_ACCEPTED
+  APPLICATION_REJECTED
+  MILESTONE_SUBMITTED
+  MILESTONE_APPROVED
+  MILESTONE_REJECTED
+  PROJECT_COMPLETED
+  CERTIFICATE_ISSUED
+  NEW_MESSAGE
+  INVESTMENT_INTEREST
+  SYSTEM
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  passwordHash      String?
+  firstName         String
+  lastName          String
+  role              Role      @default(STUDENT)
+  avatar            String?
+  bio               String?
+  phone             String?
+  
+  emailVerified     Boolean   @default(false)
+  emailVerifyToken  String?
+  emailVerifyExpiry DateTime?
+  
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  
+  googleId          String?   @unique
+  linkedinId        String?   @unique
+  
+  education         String?
+  university        String?
+  graduationYear    Int?
+  skills            String[]
+  portfolioUrl      String?
+  resumeUrl         String?
+  
+  companyName       String?
+  companyWebsite    String?
+  designation       String?
+  
+  investorType      String?
+  investmentRange   String?
+  sectors           String[]
+  
+  points            Int       @default(0)
+  level             String    @default("Beginner")
+  badges            String[]
+  
+  isActive          Boolean   @default(true)
+  isVerified        Boolean   @default(false)
+  lastLoginAt       DateTime?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+  
+  projects          Project[]          @relation("InnovatorProjects")
+  applications      Application[]
+  submissions       Submission[]
+  certificates      Certificate[]
+  sentMessages      Message[]          @relation("SentMessages")
+  receivedMessages  Message[]          @relation("ReceivedMessages")
+  notifications     Notification[]
+  investments       Investment[]
+  reviewsGiven      Review[]           @relation("ReviewerRelation")
+  reviewsReceived   Review[]           @relation("RevieweeRelation")
+  refreshTokens     RefreshToken[]
+  
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  
+  @@index([token])
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ============================================
+// PROJECTS
+// ============================================
+
+model Project {
+  id              String        @id @default(uuid())
+  title           String
+  description     String
+  shortDescription String?
+  
+  domain          String
+  skills          String[]
+  difficulty      String        @default("Intermediate")
+  tags            String[]
+  
+  teamSize        Int           @default(1)
+  duration        Int
+  commitment      String        @default("Part-time")
+  
+  isPaid          Boolean       @default(false)
+  stipend         Int?
+  stipendPeriod   String?
+  
+  startDate       DateTime?
+  endDate         DateTime?
+  applicationDeadline DateTime?
+  
+  status          ProjectStatus @default(DRAFT)
+  isPublished     Boolean       @default(false)
+  isFeatured      Boolean       @default(false)
+  
+  viewCount       Int           @default(0)
+  applicationCount Int          @default(0)
+  
+  coverImage      String?
+  attachments     String[]
+  
+  innovatorId     String
+  innovator       User          @relation("InnovatorProjects", fields: [innovatorId], references: [id])
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  publishedAt     DateTime?
+  completedAt     DateTime?
+  deletedAt       DateTime?
+  
+  applications    Application[]
+  milestones      Milestone[]
+  certificates    Certificate[]
+  investments     Investment[]
+  reviews         Review[]
+  
+  @@index([status])
+  @@index([domain])
+  @@index([innovatorId])
+  @@index([isPublished])
+  @@map("projects")
+}
+
+// ============================================
+// APPLICATIONS
+// ============================================
+
+model Application {
+  id            String            @id @default(uuid())
+  
+  projectId     String
+  project       Project           @relation(fields: [projectId], references: [id])
+  
+  studentId     String
+  student       User              @relation(fields: [studentId], references: [id])
+  
+  status        ApplicationStatus @default(PENDING)
+  
+  coverLetter   String?
+  relevantExperience String?
+  portfolioLinks String[]
+  availability  String?
+  
+  feedback      String?
+  
+  appliedAt     DateTime          @default(now())
+  shortlistedAt DateTime?
+  acceptedAt    DateTime?
+  rejectedAt    DateTime?
+  updatedAt     DateTime          @updatedAt
+  
+  @@unique([projectId, studentId])
+  @@index([projectId])
+  @@index([studentId])
+  @@index([status])
+  @@map("applications")
+}
+
+// ============================================
+// MILESTONES & SUBMISSIONS
+// ============================================
+
+model Milestone {
+  id          String          @id @default(uuid())
+  
+  projectId   String
+  project     Project         @relation(fields: [projectId], references: [id])
+  
+  title       String
+  description String?
+  order       Int
+  
+  deliverables String[]
+  deadline     DateTime?
+  
+  status      MilestoneStatus @default(PENDING)
+  
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  completedAt DateTime?
+  
+  submissions Submission[]
+  
+  @@index([projectId])
+  @@index([order])
+  @@map("milestones")
+}
+
+model Submission {
+  id          String           @id @default(uuid())
+  
+  milestoneId String
+  milestone   Milestone        @relation(fields: [milestoneId], references: [id])
+  
+  studentId   String
+  student     User             @relation(fields: [studentId], references: [id])
+  
+  description String?
+  files       String[]
+  links       String[]
+  
+  status      SubmissionStatus @default(SUBMITTED)
+  
+  feedback    String?
+  rating      Int?
+  
+  submittedAt DateTime         @default(now())
+  reviewedAt  DateTime?
+  updatedAt   DateTime         @updatedAt
+  
+  @@index([milestoneId])
+  @@index([studentId])
+  @@map("submissions")
+}
+
+// ============================================
+// CERTIFICATES
+// ============================================
+
+model Certificate {
+  id              String            @id @default(uuid())
+  certificateNo   String            @unique
+  
+  studentId       String
+  student         User              @relation(fields: [studentId], references: [id])
+  
+  projectId       String
+  project         Project           @relation(fields: [projectId], references: [id])
+  
+  studentName     String
+  projectTitle    String
+  innovatorName   String
+  skills          String[]
+  startDate       DateTime
+  endDate         DateTime
+  
+  status          CertificateStatus @default(PENDING)
+  
+  pdfUrl          String?
+  qrCode          String?
+  
+  issuedAt        DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  @@index([certificateNo])
+  @@index([studentId])
+  @@index([projectId])
+  @@map("certificates")
+}
+
+// ============================================
+// INVESTMENTS
+// ============================================
+
+model Investment {
+  id          String           @id @default(uuid())
+  
+  investorId  String
+  investor    User             @relation(fields: [investorId], references: [id])
+  
+  projectId   String
+  project     Project          @relation(fields: [projectId], references: [id])
+  
+  status      InvestmentStatus @default(INTERESTED)
+  
+  notes       String?
+  amount      Int?
+  
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  @@unique([investorId, projectId])
+  @@index([investorId])
+  @@index([projectId])
+  @@map("investments")
+}
+
+// ============================================
+// REVIEWS
+// ============================================
+
+model Review {
+  id          String   @id @default(uuid())
+  
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id])
+  
+  reviewerId  String
+  reviewer    User     @relation("ReviewerRelation", fields: [reviewerId], references: [id])
+  
+  revieweeId  String
+  reviewee    User     @relation("RevieweeRelation", fields: [revieweeId], references: [id])
+  
+  rating      Int
+  comment     String?
+  
+  communicationRating Int?
+  qualityRating       Int?
+  timelinessRating    Int?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([projectId, reviewerId, revieweeId])
+  @@index([revieweeId])
+  @@map("reviews")
+}
+
+// ============================================
+// MESSAGING
+// ============================================
+
+model Message {
+  id          String   @id @default(uuid())
+  
+  senderId    String
+  sender      User     @relation("SentMessages", fields: [senderId], references: [id])
+  
+  receiverId  String
+  receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  
+  content     String
+  attachments String[]
+  
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id          String           @id @default(uuid())
+  
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  
+  type        NotificationType
+  title       String
+  message     String
+  link        String?
+  
+  isRead      Boolean          @default(false)
+  readAt      DateTime?
+  
+  createdAt   DateTime         @default(now())
+  
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ============================================
+// AUDIT LOG
+// ============================================
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  
+  userId      String?
+  action      String
+  entity      String
+  entityId    String?
+  oldValue    Json?
+  newValue    Json?
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
