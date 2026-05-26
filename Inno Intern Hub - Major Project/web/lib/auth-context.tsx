@@ -63,6 +63,10 @@ const STORAGE_KEYS = {
     ACCESS_TOKEN: "innohub_access_token",
 } as const;
 
+const API_URL = typeof window !== "undefined"
+    ? "/api"
+    : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api");
+
 // =============================================================================
 // AUTH CONTEXT
 // =============================================================================
@@ -100,7 +104,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     const parsedUser = JSON.parse(storedUser) as User;
                     
                     // Verify token is still valid by calling /auth/me
-                    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
                     try {
                         const response = await fetch(`${API_URL}/auth/me`, {
                             method: "GET",
@@ -159,8 +162,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // ---------------------------------------------------------------------------
     const login = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-            
             const response = await fetch(`${API_URL}/auth/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -215,8 +216,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 return { success: false, error: "Password must contain at least one number." };
             }
 
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-            
             const response = await fetch(`${API_URL}/auth/register`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -246,7 +245,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // ---------------------------------------------------------------------------
     const logout = useCallback(async () => {
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
             const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
             
             // Call logout endpoint to clear server-side sessions
@@ -277,7 +275,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // ---------------------------------------------------------------------------
     const refreshUser = useCallback(async () => {
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
             const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 
             if (!token) {
