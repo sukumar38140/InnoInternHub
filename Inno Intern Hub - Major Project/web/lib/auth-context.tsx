@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { API_URL } from "./api";
 
 // =============================================================================
 // TYPE DEFINITIONS
@@ -63,9 +64,7 @@ const STORAGE_KEYS = {
     ACCESS_TOKEN: "innohub_access_token",
 } as const;
 
-const API_URL = typeof window !== "undefined"
-    ? "/api"
-    : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api");
+
 
 // =============================================================================
 // AUTH CONTEXT

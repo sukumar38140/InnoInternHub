@@ -1,9 +1,5 @@
 {
   "framework": "nextjs",
-  "env": {
-    "NEXT_PUBLIC_API_URL": "@innohub_api_url",
-    "NEXT_PUBLIC_APP_URL": "@innohub_app_url"
-  },
   "functions": {
     "app/api/**/*.ts": {
       "memory": 1024,
