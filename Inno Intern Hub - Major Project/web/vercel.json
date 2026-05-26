@@ -1,24 +1,15 @@
 {
-  "buildCommand": "cd web && npm run build",
-  "installCommand": "npm install --prefix web",
-  "outputDirectory": "web/.next",
   "framework": "nextjs",
   "env": {
     "NEXT_PUBLIC_API_URL": "@innohub_api_url",
     "NEXT_PUBLIC_APP_URL": "@innohub_app_url"
   },
   "functions": {
-    "web/**/*.ts": {
+    "app/api/**/*.ts": {
       "memory": 1024,
       "maxDuration": 60
     }
   },
-  "rewrites": [
-    {
-      "source": "/:path*",
-      "destination": "/:path*"
-    }
-  ],
   "redirects": [
     {
       "source": "/dashboard",
@@ -61,7 +52,5 @@
         }
       ]
     }
-  ],
-  "regions": ["iad1"],
-  "crons": []
+  ]
 }
